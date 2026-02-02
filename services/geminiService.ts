@@ -10,6 +10,24 @@ const formatHistory = (touches: Touch[]): string => {
   ).join('\n');
 };
 
+const handleGeminiError = (error: any): string => {
+  // Check for Rate Limit (429) via various error structures
+  const isRateLimit = 
+    error?.status === 429 || 
+    error?.code === 429 || 
+    error?.error?.code === 429 || 
+    (error?.message && error.message.includes('429')) ||
+    (error?.message && error.message.includes('quota'));
+
+  if (isRateLimit) {
+    console.warn("Gemini Rate Limit Exceeded");
+    return "AI Usage Limit Reached. Please try again later.";
+  }
+
+  console.error("Gemini Error:", error);
+  return "AI Service Unavailable.";
+};
+
 export const generateLeadSummary = async (lead: Lead, touches: Touch[]): Promise<string> => {
   if (touches.length === 0) return "No interaction history available.";
 
@@ -38,8 +56,7 @@ export const generateLeadSummary = async (lead: Lead, touches: Touch[]): Promise
     });
     return response.text || "Could not generate summary.";
   } catch (error) {
-    console.error("Gemini Error:", error);
-    return "AI Summary unavailable (Check API Key).";
+    return handleGeminiError(error);
   }
 };
 
@@ -70,6 +87,7 @@ export const suggestNextAction = async (lead: Lead, touches: Touch[]): Promise<{
         const json = JSON.parse(response.text || "{}");
         return json;
     } catch (e) {
-        return { action: "Review File manually", rationale: "AI unavailable" };
+        const msg = handleGeminiError(e);
+        return { action: "Manual Review Required", rationale: msg };
     }
 }
