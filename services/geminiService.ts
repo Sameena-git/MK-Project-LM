@@ -11,7 +11,6 @@ const formatHistory = (touches: Touch[]): string => {
 };
 
 const handleGeminiError = (error: any): string => {
-  // Check for Rate Limit (429) via various error structures
   const isRateLimit = 
     error?.status === 429 || 
     error?.code === 429 || 
@@ -66,10 +65,12 @@ export const suggestNextAction = async (lead: Lead, touches: Touch[]): Promise<{
         const borrowersList = lead.borrowers.map(b => `${b.firstName} ${b.lastName}`).join(' and ');
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3-pro-preview',
             contents: `
-                Based on this mortgage lead history, suggest the SINGLE best next action.
-                Lead: ${borrowersList} (${lead.status})
+                You are a senior mortgage strategist. Based on this lead history, determine the SINGLE best strategic move to close this loan.
+                Lead: ${borrowersList}
+                Status: ${lead.status}
+                Loan: ${lead.loanParams.purpose} $${lead.loanParams.loanAmount} at ${lead.loanParams.interestRate}%
                 History: ${history}
             `,
             config: {
@@ -78,16 +79,20 @@ export const suggestNextAction = async (lead: Lead, touches: Touch[]): Promise<{
                     type: Type.OBJECT,
                     properties: {
                         action: { type: Type.STRING, description: "The specific action (e.g., 'Call to lock rate', 'Send pre-approval letter')" },
-                        rationale: { type: Type.STRING, description: "Why this is the right move now." }
+                        rationale: { type: Type.STRING, description: "Why this move is strategically sound based on the history." }
                     }
                 }
             }
         });
         
-        const json = JSON.parse(response.text || "{}");
-        return json;
+        const text = response.text || "{}";
+        const json = JSON.parse(text);
+        return {
+            action: json.action || "Continue regular follow-up",
+            rationale: json.rationale || "Maintain momentum until borrower makes a decision."
+        };
     } catch (e) {
         const msg = handleGeminiError(e);
-        return { action: "Manual Review Required", rationale: msg };
+        return { action: "Review Required", rationale: msg };
     }
 }

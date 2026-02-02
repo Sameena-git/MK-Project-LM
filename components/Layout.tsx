@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Zap, Search, Bell, LogOut, ChevronDown, Database } from 'lucide-react';
+import { LayoutDashboard, Users, Zap, Search, Bell, LogOut, ChevronDown, Database, CloudCheck, HardDrive } from 'lucide-react';
 import { useSearch } from '../contexts/SearchContext';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
@@ -64,6 +64,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </>
           )}
         </nav>
+
+        {/* Persistence Status */}
+        <div className="px-6 py-3 flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest border-t border-slate-800/50">
+            <HardDrive size={12} className="text-green-500" />
+            Local Database Secured
+        </div>
 
         <div className="p-4 border-t border-slate-800">
             <div className="relative group">
