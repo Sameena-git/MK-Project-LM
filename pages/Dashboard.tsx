@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Phone, Clock, DollarSign, AlertCircle, AlertTriangle, ArrowRight, UserPlus, Archive, Filter, X, Check, Trash2, Users, MessageSquare, Send, Mail, MessageCircle } from 'lucide-react';
+import { Plus, Phone, Clock, DollarSign, AlertCircle, AlertTriangle, ArrowRight, UserPlus, Archive, Filter, X, Check, Trash2, Users, MessageSquare, Send, Mail, MessageCircle, Save } from 'lucide-react';
 import { getLeads, createLead, findDuplicateLead, saveLead, addTouch } from '../services/storage';
 import { Lead, LeadStatus, Borrower, UserRole, TouchType, TouchOutcome } from '../types';
 import { useSearch } from '../contexts/SearchContext';
@@ -405,4 +405,206 @@ export const Dashboard: React.FC = () => {
                                     <ArrowRight size={16} /> Use Existing Lead
                                 </button>
                                 <button onClick={executeCreate} className="flex items-center justify-center gap-2 w-full p-3 bg-white text-slate-700 font-bold rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                                    <UserPlus size={16} />
+                                    <UserPlus size={16} /> Create New Lead Anyway
+                                </button>
+                                <button onClick={handleArchiveAndReplace} className="flex items-center justify-center gap-2 w-full p-3 bg-white text-red-600 font-bold rounded-lg border border-slate-200 hover:bg-red-50 transition-colors">
+                                    <Archive size={16} /> Archive Old & Create New
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <form id="create-lead-form" onSubmit={handleCreateSubmit} className="space-y-5">
+                            {borrowers.map((borrower, idx) => (
+                                <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-100 relative group">
+                                    {idx > 0 && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleRemoveBorrower(idx)}
+                                            className="absolute top-2 right-2 text-slate-300 hover:text-red-500"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    )}
+                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">
+                                        {borrower.isPrimary ? 'Primary Borrower' : 'Co-Borrower'}
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-4 mb-3">
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 mb-1">First Name</label>
+                                            <input 
+                                                required={idx === 0}
+                                                type="text" 
+                                                className="w-full border-slate-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 text-sm"
+                                                value={borrower.firstName}
+                                                onChange={(e) => handleBorrowerChange(idx, 'firstName', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 mb-1">Last Name</label>
+                                            <input 
+                                                required={idx === 0}
+                                                type="text" 
+                                                className="w-full border-slate-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 text-sm"
+                                                value={borrower.lastName}
+                                                onChange={(e) => handleBorrowerChange(idx, 'lastName', e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 mb-1">Phone</label>
+                                            <input 
+                                                required={idx === 0}
+                                                type="tel" 
+                                                className="w-full border-slate-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 text-sm"
+                                                value={borrower.phone}
+                                                onChange={(e) => handleBorrowerChange(idx, 'phone', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 mb-1">Email</label>
+                                            <input 
+                                                type="email" 
+                                                className="w-full border-slate-300 rounded-md shadow-sm focus:ring-brand-500 focus:border-brand-500 text-sm"
+                                                value={borrower.email}
+                                                onChange={(e) => handleBorrowerChange(idx, 'email', e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            
+                            {borrowers.length < 4 && (
+                                <button type="button" onClick={handleAddBorrower} className="text-xs font-bold text-brand-600 flex items-center gap-1 hover:text-brand-800">
+                                    <Plus size={14} /> Add Co-Borrower
+                                </button>
+                            )}
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 mb-1">Loan Purpose</label>
+                                <div className="flex gap-4">
+                                    {['PURCHASE', 'REFINANCE'].map(p => (
+                                        <label key={p} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                            <input 
+                                                type="radio" 
+                                                name="purpose" 
+                                                value={p} 
+                                                checked={purpose === p}
+                                                onChange={(e) => setPurpose(e.target.value)}
+                                                className="text-brand-600 focus:ring-brand-500"
+                                            />
+                                            {p}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </form>
+                    )}
+                </div>
+
+                <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                    <button onClick={resetForm} className="px-4 py-2 text-slate-600 font-medium hover:text-slate-900 transition-colors">
+                        Cancel
+                    </button>
+                    {!duplicateLead && (
+                        <button 
+                            type="submit" 
+                            form="create-lead-form"
+                            className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition-all"
+                        >
+                            Create Lead
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Quick Touch Modal */}
+      {quickTouchLead && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-2xl w-[500px] animate-in fade-in zoom-in duration-200">
+                  <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+                      <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                          <MessageSquare className="text-brand-500" size={18} />
+                          Quick Touch
+                      </h3>
+                      <button onClick={() => setQuickTouchLead(null)} className="text-slate-400 hover:text-slate-600">
+                          <X size={20} />
+                      </button>
+                  </div>
+                  
+                  <div className="p-4 bg-slate-50 border-b border-slate-100">
+                      <div className="text-sm font-bold text-slate-900">
+                          {quickTouchLead.borrowers[0].firstName} {quickTouchLead.borrowers[0].lastName}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1 flex gap-3">
+                          <span className="flex items-center gap-1"><Phone size={10} /> {quickTouchLead.borrowers[0].phone}</span>
+                          <span className="flex items-center gap-1"><Mail size={10} /> {quickTouchLead.borrowers[0].email || 'No email'}</span>
+                      </div>
+                  </div>
+
+                  <form onSubmit={handleQuickTouchSubmit} className="p-6 space-y-4">
+                      <div className="flex gap-2 justify-center">
+                         <button 
+                            type="button" 
+                            onClick={() => setTouchType(TouchType.CALL)}
+                            className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-all flex flex-col items-center gap-1 ${touchType === TouchType.CALL ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            <Phone size={16} /> Call
+                        </button>
+                         <button 
+                            type="button" 
+                            onClick={() => setTouchType(TouchType.TEXT)}
+                            className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-all flex flex-col items-center gap-1 ${touchType === TouchType.TEXT ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            <MessageSquare size={16} /> Text
+                        </button>
+                         <button 
+                            type="button" 
+                            onClick={() => setTouchType(TouchType.EMAIL)}
+                            className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-all flex flex-col items-center gap-1 ${touchType === TouchType.EMAIL ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            <Mail size={16} /> Email
+                        </button>
+                      </div>
+
+                      <div>
+                          <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Outcome</label>
+                          <select 
+                            value={touchOutcome} 
+                            onChange={(e) => setTouchOutcome(e.target.value as TouchOutcome)}
+                            className="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-brand-500"
+                        >
+                            {Object.values(TouchOutcome).map(o => (
+                                <option key={o} value={o}>{o.replace('_', ' ')}</option>
+                            ))}
+                        </select>
+                      </div>
+
+                      <div>
+                          <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Notes</label>
+                          <textarea
+                            autoFocus
+                            required
+                            value={touchContent}
+                            onChange={(e) => setTouchContent(e.target.value)}
+                            placeholder="Details about the conversation..."
+                            className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-500 resize-none h-24"
+                        />
+                      </div>
+
+                      <button 
+                        type="submit"
+                        disabled={!touchContent.trim()}
+                        className="w-full bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-lg font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                      >
+                          <Save size={18} /> Log Interaction
+                      </button>
+                  </form>
+              </div>
+          </div>
+      )}
+    </div>
+  );
+};
